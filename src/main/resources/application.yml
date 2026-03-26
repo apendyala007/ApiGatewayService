@@ -110,6 +110,18 @@ spring:
                 name: card-service
                 fallbackuri: forward:/fallback/card-service
             - AuthenticationFilter
+        
+        # Report Service Routes
+        - id: report-service
+          uri: lb://bharatbank-report-service
+          predicates:
+            - Path=/api/reports/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: report-service
+                fallbackuri: forward:/fallback/report-service
+            - AuthenticationFilter
       
       default-filters:
             - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
