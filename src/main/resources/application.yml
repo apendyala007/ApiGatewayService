@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: bharatbank-gateway
+    name: BharatBankApiGateway
   cloud:
     gateway:
       discovery:
@@ -16,16 +16,16 @@ spring:
           uri: lb://bharatbank-user-service
           predicates:
             - Path=/api/auth/**,/api/users/**
-              filters:
-                - name: CircuitBreaker
-                  args:
-                    name: user-service
-                    fallbackuri: forward:/fallback/user-service
-                - name: RequestRateLimiter
-                  args:
-                    redis-rate-limiter.replenishRate: 10
-                    redis-rate-limiter.burstCapacity: 20
-                    key-resolver: "#{@userKeyResolver}"
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: user-service
+                fallbackuri: forward:/fallback/user-service
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                key-resolver: "#{@userKeyResolver}"
         
         # Customer Service Routes
         - id: customer-service
