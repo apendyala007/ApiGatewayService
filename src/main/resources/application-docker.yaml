@@ -1,0 +1,125 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ApiGatewayService
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: user-service
+          uri: lb://BharatBankUserService
+          predicates:
+            - Path=/bharatbank-user-service/**
+          filters:
+            - StripPrefix=0
+        - id: account-service
+          uri: lb://BharatBankAccountService
+          predicates:
+            - Path=/bharatbank-account-service/**
+          filters:
+            - StripPrefix=0
+        - id: customer-service
+          uri: lb://BharatBankCustomerService
+          predicates:
+            - Path=/bharatbank-customer-service/**
+          filters:
+            - StripPrefix=0
+        - id: payment-service
+          uri: lb://BharatBankPaymentService
+          predicates:
+            - Path=/bharatbank-payment-service/**
+          filters:
+            - StripPrefix=0
+        - id: notification-service
+          uri: lb://BharatBankNotificationService
+          predicates:
+            - Path=/bharatbank-notification-service/**
+          filters:
+            - StripPrefix=0
+        - id: beneficiary-service
+          uri: lb://BharatBankBeneficiaryService
+          predicates:
+            - Path=/bharatbank-beneficiary-service/**
+          filters:
+            - StripPrefix=0
+        - id: card-service
+          uri: lb://BharatBankCardService
+          predicates:
+            - Path=/bharatbank-card-service/**
+          filters:
+            - StripPrefix=0
+        - id: audit-service
+          uri: lb://BharatBankAuditService
+          predicates:
+            - Path=/bharatbank-audit-service/**
+          filters:
+            - StripPrefix=0
+        - id: report-service
+          uri: lb://BharatBankReportService
+          predicates:
+            - Path=/bharatbank-report-service/**
+          filters:
+            - StripPrefix=0
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      topic: gateway-logs
+
+jwt:
+  secret: ${JWT_SECRET:mySecretKeyForApiGatewayServiceThatIsVeryLongAndSecure}
+  expiration: 3600000
+
+rate-limit:
+  default:
+    replenish-rate: 100
+    burst-capacity: 200
+  auth-endpoints:
+    replenish-rate: 20
+    burst-capacity: 40
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL:http://eureka:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,gateway,ratelimit
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web.reactive: INFO
+    reactor.netty: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/application.log
+    max-size: 100MB
+    max-history: 30
