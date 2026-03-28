@@ -3,6 +3,7 @@ package com.bharatbank.gateway.config;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +15,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.web.server.SecurityWebFilterChain;
@@ -32,10 +34,14 @@ import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebFluxSecurity
+@Slf4j
 public class SecurityConfig {
 
     @Value("${security.jwt.secret}")
     private String jwtSecret;
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}")
+    private String oauth2IssuerUri;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
@@ -47,6 +53,8 @@ public class SecurityConfig {
                 .pathMatchers("/api/customers", "/api/customers/**").hasAnyRole("USER", "ADMIN", "BANK_MANAGER")
                 .pathMatchers("/api/kyc", "/api/kyc/**").hasAnyRole("USER", "ADMIN", "BANK_MANAGER")
                 .pathMatchers("/api/accounts/**", "/api/transactions/**").hasRole("ACCOUNT_SERVICE")
+                .pathMatchers("/api/payments/**").hasAnyRole("ADMIN", "BANK_MANAGER", "USER")
+                .pathMatchers("/api/beneficiaries/**").hasAnyRole("ADMIN", "BANK_MANAGER", "USER")
                 .anyExchange().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt
@@ -58,10 +66,35 @@ public class SecurityConfig {
 
     @Bean
     public ReactiveJwtDecoder jwtDecoder() {
-        return token -> Mono.fromCallable(() -> decodeJwt(token));
+        ReactiveJwtDecoder oauth2Decoder = null;
+        
+        // Create OAuth2 decoder if issuer URI is configured
+        if (oauth2IssuerUri != null && !oauth2IssuerUri.isBlank()) {
+            try {
+                oauth2Decoder = NimbusReactiveJwtDecoder.withIssuerLocation(oauth2IssuerUri).build();
+                log.info("OAuth2 JWT decoder configured with issuer: {}", oauth2IssuerUri);
+            } catch (Exception e) {
+                log.warn("Failed to create OAuth2 JWT decoder (Keycloak may not be available): {}", e.getMessage());
+                oauth2Decoder = null;
+            }
+        }
+        
+        final ReactiveJwtDecoder finalOAuth2Decoder = oauth2Decoder;
+        
+        // Return composite decoder that tries OAuth2 first, then custom secret
+        return token -> {
+            if (finalOAuth2Decoder != null) {
+                return finalOAuth2Decoder.decode(token)
+                    .onErrorResume(e -> {
+                        log.debug("OAuth2 JWT validation failed, trying custom secret: {}", e.getMessage());
+                        return Mono.fromCallable(() -> decodeJwtWithSecret(token));
+                    });
+            }
+            return Mono.fromCallable(() -> decodeJwtWithSecret(token));
+        };
     }
 
-    private Jwt decodeJwt(String token) {
+    private Jwt decodeJwtWithSecret(String token) {
         try {
             SecretKey secretKey = new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             Jws<Claims> jws = Jwts.parserBuilder()
@@ -102,6 +135,14 @@ public class SecurityConfig {
 
     private List<GrantedAuthority> extractAuthorities(Jwt jwt) {
         Set<String> authorities = new LinkedHashSet<>();
+        
+        // Debug: Log all JWT claims
+        log.info("JWT Claims - role: {}, roleName: {}, roles: {}, authorities: {}, scope: {}",
+            jwt.getClaimAsString("role"),
+            jwt.getClaimAsString("roleName"),
+            jwt.getClaim("roles"),
+            jwt.getClaim("authorities"),
+            jwt.getClaimAsStringList("scope"));
 
         addAuthorities(authorities, jwt.getClaim("roles"), false);
         addAuthorities(authorities, jwt.getClaim("authorities"), false);
@@ -109,6 +150,8 @@ public class SecurityConfig {
 
         addAuthority(authorities, jwt.getClaimAsString("role"));
         addAuthority(authorities, jwt.getClaimAsString("roleName"));
+        
+        log.info("Extracted authorities: {}", authorities);
 
         return authorities.stream()
             .map(SimpleGrantedAuthority::new)

@@ -28,6 +28,7 @@ spring:
               predicates:
                 - Path=/api/customers/**,/api/kyc/**
               filters:
+                - PrefixPath=/bharatbank-customer-service
                 - name: CircuitBreaker
                   args:
                     name: customer-service
@@ -40,6 +41,7 @@ spring:
               predicates:
                 - Path=/api/accounts/**,/api/transactions/**
               filters:
+                - PrefixPath=/bharatbank-account-service
                 - name: CircuitBreaker
                   args:
                     name: account-service
@@ -52,6 +54,7 @@ spring:
               predicates:
                 - Path=/api/notifications/**,/api/alerts/**
               filters:
+                - PrefixPath=/bharatbank-notification-service
                 - name: CircuitBreaker
                   args:
                     name: notification-service
@@ -60,10 +63,11 @@ spring:
 
             # Payment Service Routes
             - id: payment-service
-              uri: lb://bharatbank-payment-service
+              uri: http://localhost:8084
               predicates:
                 - Path=/api/payments/**,/api/transactions/**
               filters:
+                - PrefixPath=/bharatbank-payment-service
                 - name: CircuitBreaker
                   args:
                     name: payment-service
@@ -76,6 +80,7 @@ spring:
               predicates:
                 - Path=/api/audit/**
               filters:
+                - PrefixPath=/bharatbank-audit-service
                 - name: CircuitBreaker
                   args:
                     name: audit-service
@@ -84,10 +89,11 @@ spring:
         
             # Beneficiary Service Routes
             - id: beneficiary-service
-              uri: lb://bharatbank-beneficiary-service
+              uri: http://localhost:8086
               predicates:
                 - Path=/api/beneficiaries/**
               filters:
+                - PrefixPath=/bharatbank-beneficiary-service
                 - name: CircuitBreaker
                   args:
                     name: beneficiary-service
@@ -100,6 +106,7 @@ spring:
               predicates:
                 - Path=/api/cards/**
               filters:
+                - PrefixPath=/bharatbank-card-service
                 - name: CircuitBreaker
                   args:
                     name: card-service
@@ -112,6 +119,7 @@ spring:
               predicates:
                 - Path=/api/reports/**
               filters:
+                - PrefixPath=/bharatbank-report-service
                 - name: CircuitBreaker
                   args:
                     name: report-service
@@ -145,7 +153,14 @@ eureka:
   instance:
     prefer-ip-address: true
 
-# Security
+# Security - OAuth2 disabled (Keycloak not running), using custom JWT only
+#  security:
+#    oauth2:
+#      resourceserver:
+#        jwt:
+#          issuer-uri: ${OAUTH2_ISSUER_URI:http://localhost:8081/auth/realms/bharatbank}
+#          jwk-set-uri: ${OAUTH2_JWK_SET_URI:http://localhost:8081/auth/realms/bharatbank/protocol/openid-connect/certs}
+
 security:
   jwt:
     secret: ${JWT_SECRET:bharatbank-secret-key-2024-very-long-and-secure-key-for-jwt-signing}
