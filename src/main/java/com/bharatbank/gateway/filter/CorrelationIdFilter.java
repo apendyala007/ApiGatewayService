@@ -37,10 +37,12 @@ public class CorrelationIdFilter implements GlobalFilter, Ordered {
         
         // Add correlation ID to response headers
         return chain.filter(mutatedExchange)
-                .then(Mono.fromRunnable(() -> {
-                    mutatedExchange.getResponse().getHeaders()
-                            .add(CORRELATION_ID_HEADER, correlationId);
-                }));
+                .doFinally(signalType -> {
+                    if (!mutatedExchange.getResponse().isCommitted()) {
+                        mutatedExchange.getResponse().getHeaders()
+                                .add(CORRELATION_ID_HEADER, correlationId);
+                    }
+                });
     }
 
     private String getCorrelationId(ServerWebExchange exchange) {

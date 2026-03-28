@@ -7,22 +7,22 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.server.ServerWebExchange;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-@ControllerAdvice
+@RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatusException(
-            ResponseStatusException ex, WebRequest request) {
+            ResponseStatusException ex, ServerWebExchange exchange) {
 
         log.error("ResponseStatusException occurred: {}", ex.getReason());
 
@@ -30,14 +30,14 @@ public class GlobalExceptionHandler {
                 ex.getReason(),
                 ex.getStatusCode().value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(errorResponse, ex.getStatusCode());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
-            MethodArgumentNotValidException ex, WebRequest request) {
+            MethodArgumentNotValidException ex, ServerWebExchange exchange) {
 
         Map<String, String> errors = new HashMap<>();
 
@@ -52,14 +52,14 @@ public class GlobalExceptionHandler {
                 errorMessage,
                 HttpStatus.BAD_REQUEST.value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(
-            AuthenticationException ex, WebRequest request) {
+            AuthenticationException ex, ServerWebExchange exchange) {
 
         log.error("Authentication error occurred", ex);
 
@@ -82,14 +82,14 @@ public class GlobalExceptionHandler {
                 message,
                 HttpStatus.UNAUTHORIZED.value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ErrorResponse> handleBadCredentialsException(
-            BadCredentialsException ex, WebRequest request) {
+            BadCredentialsException ex, ServerWebExchange exchange) {
 
         log.error("Bad credentials provided", ex);
 
@@ -97,14 +97,14 @@ public class GlobalExceptionHandler {
                 "Invalid credentials provided",
                 HttpStatus.UNAUTHORIZED.value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDeniedException(
-            AccessDeniedException ex, WebRequest request) {
+            AccessDeniedException ex, ServerWebExchange exchange) {
 
         log.error("Access denied for user", ex);
 
@@ -112,14 +112,14 @@ public class GlobalExceptionHandler {
                 "Access denied: You do not have sufficient permissions to access this resource",
                 HttpStatus.FORBIDDEN.value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
-            IllegalArgumentException ex, WebRequest request) {
+            IllegalArgumentException ex, ServerWebExchange exchange) {
 
         log.error("Illegal argument exception occurred", ex);
 
@@ -127,14 +127,14 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 HttpStatus.BAD_REQUEST.value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<ErrorResponse> handleSecurityException(
-            SecurityException ex, WebRequest request) {
+            SecurityException ex, ServerWebExchange exchange) {
 
         log.error("Security exception occurred", ex);
 
@@ -142,13 +142,13 @@ public class GlobalExceptionHandler {
                 "Security violation: " + ex.getMessage(),
                 HttpStatus.UNAUTHORIZED.value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, ServerWebExchange exchange) {
 
         log.error("Unexpected error occurred", ex);
 
@@ -156,7 +156,7 @@ public class GlobalExceptionHandler {
                 "Internal server error",
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 LocalDateTime.now(),
-                request.getDescription(false).replace("uri=", "")
+                exchange.getRequest().getURI().getPath()
         );
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }

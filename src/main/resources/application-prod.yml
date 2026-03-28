@@ -1,0 +1,19 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: https://user-service.bharatbank.com
+          predicates:
+            - Path=/api/auth/**,/api/users/**
+        - id: customer-service
+          uri: https://customer-service.bharatbank.com
+          predicates:
+            - Path=/api/customers/**,/api/kyc/**
+        - id: account-service
+          uri: https://account-service.bharatbank.com
+          predicates:
+            - Path=/api/accounts/**,/api/transactions/**

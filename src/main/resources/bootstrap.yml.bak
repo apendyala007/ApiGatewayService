@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: bharatbank-gateway
+  profiles:
+    active: dev
+  
+  cloud:
+    config:
+      enabled: false
+      uri: http://localhost:8888
+      fail-fast: true
+      retry:
+        initial-interval: 1000
+        max-attempts: 6
+        max-interval: 2000
+        multiplier: 1.1
+
+# Environment specific configurations
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**,/api/users/**
+        - id: customer-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/customers/**,/api/kyc/**
+        - id: account-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/accounts/**,/api/transactions/**
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: https://user-service.bharatbank.com
+          predicates:
+            - Path=/api/auth/**,/api/users/**
+        - id: customer-service
+          uri: https://customer-service.bharatbank.com
+          predicates:
+            - Path=/api/customers/**,/api/kyc/**
+        - id: account-service
+          uri: https://account-service.bharatbank.com
+          predicates:
+            - Path=/api/accounts/**,/api/transactions/**
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: http://user-service-test:8081
+          predicates:
+            - Path=/api/auth/**,/api/users/**
+        - id: customer-service
+          uri: http://customer-service-test:8082
+          predicates:
+            - Path=/api/customers/**,/api/kyc/**
+        - id: account-service
+          uri: http://account-service-test:8083
+          predicates:
+            - Path=/api/accounts/**,/api/transactions/**
