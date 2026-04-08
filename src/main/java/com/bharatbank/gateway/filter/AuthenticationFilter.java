@@ -43,6 +43,10 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         "/actuator/info"
     );
 
+    private static final List<String> EXCLUDED_EXTENSIONS = List.of(
+        ".png", ".ico", ".jpg", ".jpeg", ".svg", ".gif", ".css", ".js", ".json", ".txt", ".html"
+    );
+
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
@@ -132,7 +136,13 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     }
 
     private boolean isExcludedPath(String path) {
-        return EXCLUDED_PATHS.stream().anyMatch(path::startsWith);
+        // Check excluded paths
+        if (EXCLUDED_PATHS.stream().anyMatch(path::startsWith)) {
+            return true;
+        }
+        // Check excluded file extensions
+        String lowerPath = path.toLowerCase();
+        return EXCLUDED_EXTENSIONS.stream().anyMatch(lowerPath::endsWith);
     }
 
     private Mono<Void> handleError(ServerWebExchange exchange, String message, HttpStatus status) {

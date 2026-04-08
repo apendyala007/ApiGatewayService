@@ -16,22 +16,18 @@ public class GatewayRouteConfig {
     @Bean
     public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
         return builder.routes()
-            // User Service Routes - NO auth filter for login/register
-            .route("user-service", r -> r
-                .path("/api/auth/**", "/api/users/**")
-                .filters(f -> f.stripPrefix(0)
-                    .prefixPath("/bharatbank-user-service"))
-                .uri("http://localhost:8081"))
+            // Account Service - Public route for account creation (POST /api/accounts)
+            .route("account-service-public", r -> r
+                .path("/api/accounts")
+                .and().method("POST")
+                .filters(f -> f
+                    .prefixPath("/bharatbank-account-service")
+                    .circuitBreaker(config -> config
+                        .setName("account-service")
+                        .setFallbackUri("forward:/fallback/account-service")))
+                .uri("lb://bharatbank-account-service"))
             
-            // Customer Service Routes
-            .route("customer-service", r -> r
-                .path("/api/customers/**", "/api/kyc/**")
-                .filters(f -> f.stripPrefix(0)
-                    .prefixPath("/bharatbank-customer-service")
-                    .filter(authenticationFilter.apply(new AuthenticationFilter.Config())))
-                .uri("http://localhost:8083"))
-            
-            // Account Service Routes
+            // Account Service - Protected routes (all other /api/accounts/** and /api/transactions/**)
             .route("account-service", r -> r
                 .path("/api/accounts/**", "/api/transactions/**")
                 .filters(f -> f
@@ -40,7 +36,22 @@ public class GatewayRouteConfig {
                         .setName("account-service")
                         .setFallbackUri("forward:/fallback/account-service"))
                     .filter(authenticationFilter.apply(new AuthenticationFilter.Config())))
-                .uri("http://localhost:8082"))
+                .uri("lb://bharatbank-account-service"))
+            
+            // User Service Routes - NO auth filter for login/register
+            .route("user-service", r -> r
+                .path("/api/auth/**", "/api/users/**")
+                .filters(f -> f.stripPrefix(0)
+                    .prefixPath("/bharatbank-user-service"))
+                .uri("lb://bharatbank-user-service"))
+            
+            // Customer Service Routes
+            .route("customer-service", r -> r
+                .path("/api/customers/**", "/api/kyc/**")
+                .filters(f -> f.stripPrefix(0)
+                    .prefixPath("/bharatbank-customer-service")
+                    .filter(authenticationFilter.apply(new AuthenticationFilter.Config())))
+                .uri("lb://bharatbank-customer-service"))
             
             // Payment Service Routes
             .route("payment-service", r -> r
@@ -51,7 +62,7 @@ public class GatewayRouteConfig {
                         .setName("payment-service")
                         .setFallbackUri("forward:/fallback/payment-service"))
                     .filter(authenticationFilter.apply(new AuthenticationFilter.Config())))
-                .uri("http://localhost:8084"))
+                .uri("lb://bharatbank-payment-service"))
             
             // Beneficiary Service Routes
             .route("beneficiary-service", r -> r
@@ -62,7 +73,7 @@ public class GatewayRouteConfig {
                         .setName("beneficiary-service")
                         .setFallbackUri("forward:/fallback/beneficiary-service"))
                     .filter(authenticationFilter.apply(new AuthenticationFilter.Config())))
-                .uri("http://localhost:8086"))
+                .uri("lb://bharatbank-beneficiary-service"))
             
             // Card Service Routes
             .route("card-service", r -> r
@@ -74,6 +85,17 @@ public class GatewayRouteConfig {
                         .setFallbackUri("forward:/fallback/card-service"))
                     .filter(authenticationFilter.apply(new AuthenticationFilter.Config())))
                 .uri("lb://bharatbank-card-service"))
+            
+            // Audit Service Routes
+            .route("audit-service", r -> r
+                .path("/api/audit/**")
+                .filters(f -> f.stripPrefix(0)
+                    .prefixPath("/bharatbank-audit-service")
+                    .circuitBreaker(config -> config
+                        .setName("audit-service")
+                        .setFallbackUri("forward:/fallback/audit-service"))
+                    .filter(authenticationFilter.apply(new AuthenticationFilter.Config())))
+                .uri("lb://bharatbank-audit-service"))
             
             .build();
     }

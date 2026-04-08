@@ -73,12 +73,12 @@ spring:
             - Path=/bharatbank-report-service/**
           filters:
             - StripPrefix=0
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-      topic: gateway-logs
+#  kafka:
+#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      topic: gateway-logs
 
 jwt:
   secret: ${JWT_SECRET:mySecretKeyForApiGatewayServiceThatIsVeryLongAndSecure}
@@ -112,9 +112,9 @@ management:
       show-details: always
     gateway:
       enabled: true
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 logging:
